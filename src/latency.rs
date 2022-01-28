@@ -1,72 +1,100 @@
 use rand::prelude::*;
 use std::{
+    future::Future,
+    marker::PhantomData,
     ops::Range,
+    pin::Pin,
     task::{Context, Poll},
-    thread::sleep,
     time::Duration,
 };
+use tokio::time;
 use tower::{Layer, Service};
 
 /// A layer that adds latency to the service before sending a request.
 ///
 /// This adds a random amount of latency to a random percentage of requests.
 #[derive(Debug, Clone)]
-pub struct LatencyLayer {
+pub struct LatencyLayer<'a> {
     probability: f64,
     range: Range<u64>,
+    _phantom: PhantomData<&'a ()>,
 }
 
-impl LatencyLayer {
+impl<'a> LatencyLayer<'a> {
     /// Create a new `LatencyLayer` with the given probability and latency range.
     ///
     /// The probability is the chance that a request will be delayed, bound between 0 and 1.
     /// The range is the range of latency to add, in milliseconds.
     pub fn new(probability: f64, range: Range<u64>) -> Self {
-        LatencyLayer { probability, range }
+        LatencyLayer {
+            probability,
+            range,
+            _phantom: PhantomData,
+        }
     }
 }
 
-impl Default for LatencyLayer {
+impl<'a> Default for LatencyLayer<'a> {
     fn default() -> Self {
         LatencyLayer::new(0.1, 100..200)
     }
 }
 
-impl<S> Layer<S> for LatencyLayer {
-    type Service = LatencyService<S>;
+impl<'a, S> Layer<S> for LatencyLayer<'a> {
+    type Service = LatencyService<'a, S>;
 
     fn layer(&self, inner: S) -> Self::Service {
         LatencyService {
             inner,
             latency: self.clone(),
-            rng: thread_rng(),
+            rng: StdRng::from_entropy(),
         }
     }
 }
 
-pub struct LatencyService<S> {
+pub struct LatencyService<'a, S> {
     inner: S,
-    latency: LatencyLayer,
-    rng: ThreadRng,
+    latency: LatencyLayer<'a>,
+    rng: StdRng,
 }
 
-impl<S, R> Service<R> for LatencyService<S>
+impl<'a, R, S> Service<R> for LatencyService<'a, S>
 where
-    S: Service<R>,
+    R: Send,
+    S: Service<R> + Send,
+    S::Future: Send + 'a,
+    S::Response: Send,
 {
     type Response = S::Response;
     type Error = S::Error;
-    type Future = S::Future;
+    type Future = LatencyFuture<'a, R, S>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.inner.poll_ready(cx)
     }
 
     fn call(&mut self, request: R) -> Self::Future {
-        if self.rng.gen::<f64>() < self.latency.probability {
-            let latency = self.rng.gen_range(self.latency.range.clone());
-            sleep(Duration::from_millis(latency));
-        }
-        self.inner.call(request)
+        // Calculate latency
+        let latency = if self.rng.gen::<f64>() < self.latency.probability {
+            self.rng.gen_range(self.latency.range.clone())
+        } else {
+            0
+        };
+
+        let fut = self.inner.call(request);
+        let fut = async move {
+            time::sleep(Duration::from_millis(latency)).await;
+            fut.await
+        };
+
+        Box::pin(fut)
     }
 }
+
+type LatencyFuture<'a, R, S> = Pin<
+    Box<
+        dyn Future<Output = Result<<S as Service<R>>::Response, <S as Service<R>>::Error>>
+            + Send
+            + 'a,
+    >,
+>;
