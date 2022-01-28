@@ -1,0 +1,14 @@
+[package]
+name = "tower-fault-injector"
+description = "Tower layers for fault injection"
+version = "0.0.1"
+edition = "2021"
+authors = ["nicolas.moutschen@gmail.com"]
+license = "MIT"
+repository = "https://github.com/nmoutschen/tower-fault-injector"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand = "0.8"
+tower = "0.4"
