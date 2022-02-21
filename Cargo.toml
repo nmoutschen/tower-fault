@@ -10,6 +10,10 @@ repository = "https://github.com/nmoutschen/tower-fault-injector"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rand = "0.8"
+rand = { version = "0.8", optional = true }
 tower = "0.4"
-tokio = { version = "1", features = ["time"] }
+tokio = { version = "1", features = ["time"], optional = true }
+
+[features]
+default = []
+latency = ["rand", "tokio"]

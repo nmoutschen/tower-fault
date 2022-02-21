@@ -52,6 +52,7 @@ impl<'a, S> Layer<S> for LatencyLayer<'a> {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct LatencyService<'a, S> {
     inner: S,
     latency: LatencyLayer<'a>,
