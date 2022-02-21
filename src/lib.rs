@@ -7,3 +7,6 @@ pub use latency::{LatencyLayer, LatencyService};
 mod error;
 #[cfg(feature = "error")]
 pub use error::{ErrorLayer, ErrorService};
+
+#[cfg(test)]
+mod test_utils;

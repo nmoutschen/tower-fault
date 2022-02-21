@@ -16,5 +16,7 @@ tokio = { version = "1", features = ["time", "rt", "macros"], optional = true }
 
 [features]
 default = []
-latency = ["rand", "tokio"]
+full = ["error", "latency"]
+
 error = ["rand", "tokio"]
+latency = ["rand", "tokio"]

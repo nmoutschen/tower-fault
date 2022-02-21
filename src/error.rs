@@ -92,36 +92,27 @@ type ErrorFuture<'a, R, S> = Pin<
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    struct DummyService;
-
-    impl Service<()> for DummyService {
-        type Response = String;
-        type Error = String;
-        type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
-
-        fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-            Poll::Ready(Ok(()))
-        }
-
-        fn call(&mut self, _request: ()) -> Self::Future {
-            Box::pin(async { Ok(String::from("ok")) })
-        }
-    }
+    use crate::test_utils::*;
 
     #[tokio::test]
     async fn error_success() {
         let layer = ErrorLayer::new(0.0, || String::from("error"));
         let mut service = layer.layer(DummyService);
-        let res = service.call(()).await;
-        assert_eq!(res.unwrap(), String::from("ok"));
+
+        for _ in 0..1000 {
+            let res = service.call(()).await;
+            assert_eq!(res.unwrap(), String::from("ok"));
+        }
     }
 
     #[tokio::test]
     async fn error_fail() {
         let layer = ErrorLayer::new(1.0, || String::from("error"));
         let mut service = layer.layer(DummyService);
-        let res = service.call(()).await;
-        assert_eq!(res.unwrap_err(), String::from("error"));
+
+        for _ in 0..1000 {
+            let res = service.call(()).await;
+            assert_eq!(res.unwrap_err(), String::from("error"));
+        }
     }
 }

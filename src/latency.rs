@@ -99,3 +99,38 @@ type LatencyFuture<'a, R, S> = Pin<
             + 'a,
     >,
 >;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::*;
+    use std::time::Instant;
+
+    #[tokio::test]
+    async fn latency_none() {
+        let latency = LatencyLayer::new(0.0, 10..20);
+        let mut service = latency.layer(DummyService);
+
+        for _ in 0..1000 {
+            let now = Instant::now();
+            let _res = service.call(()).await;
+            let elapsed = now.elapsed();
+
+            assert!(elapsed < Duration::from_millis(5));
+        }
+    }
+
+    #[tokio::test]
+    async fn latency_all() {
+        let latency = LatencyLayer::new(1.0, 10..11);
+        let mut service = latency.layer(DummyService);
+
+        for _ in 0..100 {
+            let now = Instant::now();
+            let _res = service.call(()).await;
+            let elapsed = now.elapsed();
+
+            assert!(elapsed > Duration::from_millis(5));
+        }
+    }
+}
