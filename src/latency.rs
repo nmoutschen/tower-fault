@@ -46,7 +46,7 @@ impl<'a, S> Layer<S> for LatencyLayer<'a> {
     fn layer(&self, inner: S) -> Self::Service {
         LatencyService {
             inner,
-            latency: self.clone(),
+            layer: self.clone(),
             rng: StdRng::from_entropy(),
         }
     }
@@ -55,7 +55,7 @@ impl<'a, S> Layer<S> for LatencyLayer<'a> {
 #[derive(Debug, Clone)]
 pub struct LatencyService<'a, S> {
     inner: S,
-    latency: LatencyLayer<'a>,
+    layer: LatencyLayer<'a>,
     rng: StdRng,
 }
 
@@ -76,8 +76,8 @@ where
 
     fn call(&mut self, request: R) -> Self::Future {
         // Calculate latency
-        let latency = if self.rng.gen::<f64>() < self.latency.probability {
-            self.rng.gen_range(self.latency.range.clone())
+        let latency = if self.rng.gen::<f64>() < self.layer.probability {
+            self.rng.gen_range(self.layer.range.clone())
         } else {
             0
         };
