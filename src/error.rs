@@ -11,20 +11,20 @@ use tower::{Layer, Service};
 ///
 /// This trigger errors based on the given probability and using
 /// a function to generate errors.
-/// 
+///
 /// ## Usage
-/// 
+///
 /// ```rust
 /// use tower_fault_injector::error::ErrorLayer;
 /// use tower::{service_fn, ServiceBuilder};
 /// # async fn my_service() -> Result<(), String> {
 /// #     Ok(())
 /// # }
-/// 
+///
 /// // Initialize an ErrorLayer with a 10% probability of returning
 /// // an error.
 /// let error_layer = ErrorLayer::new(0.1, || String::from("error"));
-/// 
+///
 /// let service = ServiceBuilder::new()
 ///     .layer(error_layer)
 ///     .service(service_fn(my_service));

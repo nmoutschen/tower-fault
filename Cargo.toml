@@ -7,15 +7,22 @@ authors = ["nicolas.moutschen@gmail.com"]
 license = "MIT"
 repository = "https://github.com/nmoutschen/tower-fault-injector"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 rand = { version = "0.8", optional = true }
 tower = { version = "0.4", features = ["util"] }
 tokio = { version = "1", features = ["time", "rt", "macros"], optional = true }
 
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+
+# Axum example
+axum = "0.4"
+
+# Lambda example
+lambda_http = "0.5"
+
 [features]
-default = []
+default = ["full"]
 full = ["error", "latency"]
 
 error = ["rand", "tokio"]
