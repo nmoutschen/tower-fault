@@ -11,6 +11,24 @@ use tower::{Layer, Service};
 ///
 /// This trigger errors based on the given probability and using
 /// a function to generate errors.
+/// 
+/// ## Usage
+/// 
+/// ```rust
+/// use tower_fault_injector::error::ErrorLayer;
+/// use tower::{service_fn, ServiceBuilder};
+/// # async fn my_service() -> Result<(), String> {
+/// #     Ok(())
+/// # }
+/// 
+/// // Initialize an ErrorLayer with a 10% probability of returning
+/// // an error.
+/// let error_layer = ErrorLayer::new(0.1, || String::from("error"));
+/// 
+/// let service = ServiceBuilder::new()
+///     .layer(error_layer)
+///     .service(service_fn(my_service));
+/// ```
 #[derive(Clone, Debug)]
 pub struct ErrorLayer<'a, F> {
     probability: f64,
@@ -22,7 +40,8 @@ impl<'a, F> ErrorLayer<'a, F> {
     /// Create a new `ErrorLayer` with the given probability and error function.
     ///
     /// The probability is the chance that a request will result in an error,
-    /// bound between 0 and 1.
+    /// bound between 0 and 1. A probability of 0.5 means that 50% of the calls
+    /// to the service will result in an error.
     pub fn new(probability: f64, func: F) -> Self {
         ErrorLayer {
             probability,
@@ -47,6 +66,8 @@ where
     }
 }
 
+/// Service that randomly trigger errors instead of calling the underlying
+/// service.
 #[derive(Clone, Debug)]
 pub struct ErrorService<'a, F, S> {
     inner: S,

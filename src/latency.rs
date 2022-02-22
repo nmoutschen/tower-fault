@@ -13,6 +13,24 @@ use tower::{Layer, Service};
 /// A layer that adds latency to the service before sending a request.
 ///
 /// This adds a random amount of latency to a random percentage of requests.
+/// 
+/// ## Usage
+/// 
+/// ```rust
+/// use tower_fault_injector::latency::LatencyLayer;
+/// use tower::{service_fn, ServiceBuilder};
+/// # async fn my_service() -> Result<(), ()> {
+/// #     Ok(())
+/// # }
+/// 
+/// // Initialize a LatencyLayer with a 10% probability of injecting
+/// // 200 to 500 milliseconds of latency.
+/// let latency_layer = LatencyLayer::new(0.1, 200..500);
+/// 
+/// let service = ServiceBuilder::new()
+///     .layer(latency_layer)
+///     .service(service_fn(my_service));
+/// ```
 #[derive(Debug, Clone)]
 pub struct LatencyLayer<'a> {
     probability: f64,
@@ -23,7 +41,10 @@ pub struct LatencyLayer<'a> {
 impl<'a> LatencyLayer<'a> {
     /// Create a new `LatencyLayer` with the given probability and latency range.
     ///
-    /// The probability is the chance that a request will be delayed, bound between 0 and 1.
+    /// The probability is the chance that a request will be delayed, bound
+    /// between 0 and 1. A probability of 0.5 means that 50% of the calls
+    /// to the service will result in elevated latencies.
+    /// 
     /// The range is the range of latency to add, in milliseconds.
     pub fn new(probability: f64, range: Range<u64>) -> Self {
         LatencyLayer {
