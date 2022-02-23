@@ -6,7 +6,7 @@ async fn main() -> Result<(), Error> {
     let handler = ServiceBuilder::new()
         // Add a LatencyLayer with a 50% probability of injecting
         // 200 to 500 milliseconds of latency.
-        .layer(LatencyLayer::new(0.5, 200..500))
+        .layer(LatencyLayer::new(0.5, 200..500).unwrap())
         .service(service_fn(my_handler));
 
     lambda_http::run(handler).await?;

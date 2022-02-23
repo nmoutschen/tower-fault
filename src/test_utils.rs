@@ -7,7 +7,7 @@ use std::{
 };
 use tower::Service;
 
-pub struct DummyService;
+pub(crate) struct DummyService;
 
 impl Service<()> for DummyService {
     type Response = String;
