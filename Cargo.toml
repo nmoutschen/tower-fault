@@ -1,7 +1,7 @@
 [package]
 name = "tower-fault-injector"
 description = "Tower layers for fault injection"
-version = "0.0.3"
+version = "0.0.4"
 edition = "2021"
 authors = ["nicolas.moutschen@gmail.com"]
 license = "MIT"
