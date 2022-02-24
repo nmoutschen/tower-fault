@@ -1,5 +1,5 @@
 use lambda_http::{service_fn, tower::ServiceBuilder, Error, IntoResponse, Request};
-use tower_fault_injector::latency::LatencyLayer;
+use tower_fault::latency::LatencyLayer;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {

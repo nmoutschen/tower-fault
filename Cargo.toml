@@ -1,11 +1,11 @@
 [package]
-name = "tower-fault-injector"
+name = "tower-fault"
 description = "Tower layers for fault injection"
-version = "0.0.4"
+version = "0.0.5"
 edition = "2021"
 authors = ["nicolas.moutschen@gmail.com"]
 license = "MIT"
-repository = "https://github.com/nmoutschen/tower-fault-injector"
+repository = "https://github.com/nmoutschen/tower-fault"
 
 [dependencies]
 paste = "1.0"

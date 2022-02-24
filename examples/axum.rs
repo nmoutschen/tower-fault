@@ -1,5 +1,5 @@
 use axum::{routing::get, Router, Server};
-use tower_fault_injector::latency::LatencyLayer;
+use tower_fault::latency::LatencyLayer;
 
 // Simple service that returns a string.
 async fn handler() -> &'static str {

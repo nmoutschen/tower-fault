@@ -1,8 +1,8 @@
-# tower-fault-injector [![Latest Version]][crates.io]
-[Latest Version]: https://img.shields.io/crates/v/tower-fault-injector.svg
-[crates.io]: https://crates.io/crates/tower-fault-injector
+# tower-fault [![Latest Version]][crates.io]
+[Latest Version]: https://img.shields.io/crates/v/tower-fault.svg
+[crates.io]: https://crates.io/crates/tower-fault
 
-`tower-fault-injector` is a library for injecting various faults into a `tower::Service`.
+`tower-fault` is a library for injecting various faults into a `tower::Service`.
 
 ## Layers
 
@@ -14,7 +14,7 @@ You can use the following layers to inject faults into a service:
 ## Example usage
 
 ```rust
-use tower_fault_injector::{
+use tower_fault::{
     error::ErrorLayer,
     latency::LatencyLayer,
 };

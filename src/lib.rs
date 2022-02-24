@@ -15,7 +15,7 @@
 //! ## Example
 //!
 //! ```rust
-//! use tower_fault_injector::{
+//! use tower_fault::{
 //! error::ErrorLayer,
 //! latency::LatencyLayer,
 //! };

@@ -6,7 +6,7 @@
 //! ## Usage
 //!
 //! ```rust
-//! use tower_fault_injector::error::ErrorLayer;
+//! use tower_fault::error::ErrorLayer;
 //! use tower::{service_fn, ServiceBuilder};
 //! # struct MyRequest { value: u64 };
 //! # async fn my_service(_req: MyRequest) -> Result<(), String> {
@@ -31,7 +31,7 @@
 //! For more information, see the [`decider`](crate::decider) module.
 //!
 //! ```rust
-//! use tower_fault_injector::error::ErrorLayer;
+//! use tower_fault::error::ErrorLayer;
 //! # struct MyRequest { value: u64 };
 //!
 //! // Never inject an error.
@@ -52,7 +52,7 @@
 //! request.
 //!
 //! ```rust
-//! use tower_fault_injector::error::ErrorLayer;
+//! use tower_fault::error::ErrorLayer;
 //! # struct MyRequest { value: u64 };
 //!
 //! // Customize the error based on the request payload

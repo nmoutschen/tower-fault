@@ -10,7 +10,7 @@
 //! ## Example
 //!
 //! ```rust
-//! use tower_fault_injector::decider::Decider;
+//! use tower_fault::decider::Decider;
 //! # struct MyRequest { value: u64 };
 //! # impl MyRequest {
 //! #     fn new(value: u64) -> Self {

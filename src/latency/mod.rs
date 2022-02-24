@@ -5,7 +5,7 @@
 //! ## Usage
 //!
 //! ```rust
-//! use tower_fault_injector::latency::LatencyLayer;
+//! use tower_fault::latency::LatencyLayer;
 //! use tower::{service_fn, ServiceBuilder};
 //! # async fn my_service() -> Result<(), ()> {
 //! #     Ok(())
@@ -29,7 +29,7 @@
 //! For more information, see the [`decider`](crate::decider) module.
 //!
 //! ```rust
-//! use tower_fault_injector::latency::LatencyLayer;
+//! use tower_fault::latency::LatencyLayer;
 //! # struct MyRequest { value: u64 };
 //!
 //! // Never inject latency.
@@ -52,7 +52,7 @@
 //! of the [`Distribution`] trait.
 //!
 //! ```rust
-//! use tower_fault_injector::latency::LatencyLayer;
+//! use tower_fault::latency::LatencyLayer;
 //! # struct MyRequest { value: u64 };
 //!
 //! // Latency between 200 and 500 milliseconds.
