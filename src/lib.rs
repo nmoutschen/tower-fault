@@ -23,7 +23,7 @@
 //!
 //! // Initialize a LatencyLayer with a 10% probability of injecting
 //! // 200 to 500 milliseconds of latency.
-//! let latency_layer = LatencyLayer::new(0.1, 200..500).unwrap();
+//! let latency_layer = LatencyLayer::new_with_bernoulli(0.1, 200..500).unwrap();
 //!
 //! let service = ServiceBuilder::new()
 //!     .layer(latency_layer)
