@@ -27,7 +27,7 @@ use rand::{
 use std::{
     future::Future,
     marker::PhantomData,
-    ops::Range,
+    ops::{Range, RangeInclusive},
     pin::Pin,
     task::{Context, Poll},
     time::Duration,
@@ -39,13 +39,13 @@ use tower::{Layer, Service};
 ///
 /// This adds a random amount of latency to a random percentage of requests.
 #[derive(Debug, Clone)]
-pub struct LatencyLayer<'a> {
+pub struct LatencyLayer<'a, R> {
     distribution: Bernoulli,
-    range: Range<u64>,
+    range: R,
     _phantom: PhantomData<&'a ()>,
 }
 
-impl<'a> LatencyLayer<'a> {
+impl<'a, R> LatencyLayer<'a, R> {
     /// Create a new `LatencyLayer` with the given probability and latency range.
     ///
     /// The probability is the chance that a request will be delayed, bound
@@ -53,7 +53,7 @@ impl<'a> LatencyLayer<'a> {
     /// to the service will result in elevated latencies.
     ///
     /// The range is the range of latency to add, in milliseconds.
-    pub fn new(probability: f64, range: Range<u64>) -> Result<Self, Error> {
+    pub fn new(probability: f64, range: R) -> Result<Self, Error> {
         Ok(LatencyLayer {
             distribution: Bernoulli::new(probability)?,
             range,
@@ -62,14 +62,17 @@ impl<'a> LatencyLayer<'a> {
     }
 }
 
-impl<'a> Default for LatencyLayer<'a> {
+impl<'a> Default for LatencyLayer<'a, Range<u64>> {
     fn default() -> Self {
         LatencyLayer::new(0.1, 100..200).expect("failed to create default latency layer")
     }
 }
 
-impl<'a, S> Layer<S> for LatencyLayer<'a> {
-    type Service = LatencyService<'a, S>;
+impl<'a, S, R> Layer<S> for LatencyLayer<'a, R>
+where
+    R: Clone,
+{
+    type Service = LatencyService<'a, S, R>;
 
     fn layer(&self, inner: S) -> Self::Service {
         LatencyService {
@@ -82,38 +85,41 @@ impl<'a, S> Layer<S> for LatencyLayer<'a> {
 
 /// Underlying service for the `LatencyLayer`
 #[derive(Debug, Clone)]
-pub struct LatencyService<'a, S> {
+pub struct LatencyService<'a, S, R> {
     inner: S,
-    layer: LatencyLayer<'a>,
+    layer: LatencyLayer<'a, R>,
     rng: StdRng,
 }
 
-impl<'a, R, S> Service<R> for LatencyService<'a, S>
+impl<'a, Req, S, R> Service<Req> for LatencyService<'a, S, R>
 where
-    R: Send,
-    S: Service<R> + Send,
+    Req: Send,
+    R: LatencyRange + Clone,
+    S: Service<Req> + Send,
     S::Future: Send + 'a,
     S::Response: Send,
 {
     type Response = S::Response;
     type Error = S::Error;
-    type Future = LatencyFuture<'a, R, S>;
+    type Future = LatencyFuture<'a, Req, S>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.inner.poll_ready(cx)
     }
 
-    fn call(&mut self, request: R) -> Self::Future {
+    fn call(&mut self, request: Req) -> Self::Future {
         // Calculate latency
         let latency = if self.layer.distribution.sample(&mut self.rng) {
-            self.rng.gen_range(self.layer.range.clone())
+            Some(self.layer.range.get_latency(&mut self.rng))
         } else {
-            0
+            None
         };
 
         let fut = self.inner.call(request);
         let fut = async move {
-            time::sleep(Duration::from_millis(latency)).await;
+            if let Some(latency) = latency {
+                time::sleep(latency).await;
+            }
             fut.await
         };
 
@@ -128,6 +134,60 @@ type LatencyFuture<'a, R, S> = Pin<
             + 'a,
     >,
 >;
+
+/// A trait for types that can generate a random latency.
+pub trait LatencyRange {
+    /// Return a random latency in the given range
+    fn get_latency<R: Rng>(&self, rng: &mut R) -> Duration;
+}
+
+impl LatencyRange for Range<u64> {
+    fn get_latency<R: Rng>(&self, rng: &mut R) -> Duration {
+        Duration::from_millis(rng.gen_range(self.clone()))
+    }
+}
+
+impl LatencyRange for Range<f32> {
+    fn get_latency<R: Rng>(&self, rng: &mut R) -> Duration {
+        Duration::from_secs_f32(rng.gen_range(self.clone()) / 1000.0)
+    }
+}
+
+impl LatencyRange for Range<f64> {
+    fn get_latency<R: Rng>(&self, rng: &mut R) -> Duration {
+        Duration::from_secs_f64(rng.gen_range(self.clone()) / 1000.0)
+    }
+}
+
+impl LatencyRange for Range<Duration> {
+    fn get_latency<R: Rng>(&self, rng: &mut R) -> Duration {
+        rng.gen_range(self.clone())
+    }
+}
+
+impl LatencyRange for RangeInclusive<u64> {
+    fn get_latency<R: Rng>(&self, rng: &mut R) -> Duration {
+        Duration::from_millis(rng.gen_range(self.clone()))
+    }
+}
+
+impl LatencyRange for RangeInclusive<f32> {
+    fn get_latency<R: Rng>(&self, rng: &mut R) -> Duration {
+        Duration::from_secs_f32(rng.gen_range(self.clone()) / 1000.0)
+    }
+}
+
+impl LatencyRange for RangeInclusive<f64> {
+    fn get_latency<R: Rng>(&self, rng: &mut R) -> Duration {
+        Duration::from_secs_f64(rng.gen_range(self.clone()) / 1000.0)
+    }
+}
+
+impl LatencyRange for RangeInclusive<Duration> {
+    fn get_latency<R: Rng>(&self, rng: &mut R) -> Duration {
+        rng.gen_range(self.clone())
+    }
+}
 
 /// Errors that can be returned by the `LatencyLayer`.
 #[derive(Debug)]
@@ -189,4 +249,31 @@ mod tests {
 
         Ok(())
     }
+
+    macro_rules! latency_range {
+        ($name:expr, $val:expr, $cmp1:expr, $cmp2:expr) => {
+            paste::paste! {
+                #[tokio::test]
+                async fn [<latency_range_ $name>]() {
+                    let mut rng = StdRng::from_entropy();
+
+                    for _ in 0..100 {
+                        let val = ($val).get_latency(&mut rng);
+                        dbg!(val);
+                        assert!(val.[<$cmp1>](&Duration::from_millis(10)));
+                        assert!(val.[<$cmp2>](&Duration::from_millis(20)));
+                    }
+                }
+            }
+        };
+    }
+
+    latency_range!("u64", 10..20, "ge", "lt");
+    latency_range!("inclusive_u64", 10..=20, "ge", "le");
+    latency_range!("f32", 10.0..20.0, "ge", "lt");
+    latency_range!("inclusive_f32", 10.0..=20.0, "ge", "le");
+    latency_range!("f64", 10.0..20.0, "ge", "lt");
+    latency_range!("inclusive_f64", 10.0..=20.0, "ge", "le");
+    latency_range!("duration", Duration::from_millis(10)..Duration::from_millis(20), "ge", "lt");
+    latency_range!("inclusive_duration", Duration::from_millis(10)..=Duration::from_millis(20), "ge", "le");
 }

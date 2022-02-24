@@ -8,6 +8,7 @@ license = "MIT"
 repository = "https://github.com/nmoutschen/tower-fault-injector"
 
 [dependencies]
+paste = "1.0"
 rand = { version = "0.8", optional = true }
 tower = { version = "0.4", features = ["util"] }
 tokio = { version = "1", features = ["time", "rt", "macros"], optional = true }
