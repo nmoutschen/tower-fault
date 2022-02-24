@@ -1,14 +1,14 @@
 //! # Decider
-//! 
+//!
 //! This module contains the [`Decider`] trait, which decides if a fault should
 //! be injected for a given request or response. It adds a `decide` method that
 //! returns a boolean based on the request.
-//! 
+//!
 //! For primitive that implements this trait, such as `f64` and `bool`, it
 //! doesn't look at the request.
-//! 
+//!
 //! ## Example
-//! 
+//!
 //! ```rust
 //! use tower_fault_injector::decider::Decider;
 //! # struct MyRequest { value: u64 };
@@ -17,25 +17,25 @@
 //! #         Self { value }
 //! #     }
 //! # }
-//! 
+//!
 //! let my_request = MyRequest::new(6);
-//! 
+//!
 //! // Always.
 //! assert_eq!(true, true.decide(&my_request));
-//! 
+//!
 //! // Never.
 //! assert_eq!(false, false.decide(&my_request));
-//! 
+//!
 //! // 30% of the time.
 //! let decision = (0.3).decide(&my_request);
-//! 
+//!
 //! // Based on the request, using a closure as decider.
 //! let decision = (|req: &MyRequest| req.value % 2 == 0).decide(&my_request);
 //! ```
 
 use rand::{
-    Rng,
     distributions::{Bernoulli, Distribution},
+    Rng,
 };
 
 /// Trait for deciding if a fault should be injected for a given request or

@@ -1,45 +1,45 @@
 //! # Latency injection for `tower`
-//! 
+//!
 //! Layer that injects latency randomly into a service.
-//! 
+//!
 //! ## Usage
-//! 
+//!
 //! ```rust
 //! use tower_fault_injector::latency::LatencyLayer;
 //! use tower::{service_fn, ServiceBuilder};
 //! # async fn my_service() -> Result<(), ()> {
 //! #     Ok(())
 //! # }
-//! 
+//!
 //! // Initialize a LatencyLayer with a 10% probability of injecting
 //! // 200 to 500 milliseconds of latency.
 //! let latency_layer = LatencyLayer::new(0.1, 200..500);
-//! 
+//!
 //! let service = ServiceBuilder::new()
 //!     .layer(latency_layer)
 //!     .service(service_fn(my_service));
 //! ```
-//! 
+//!
 //! ### Decider
-//! 
+//!
 //! The __decider__ is used to determine if a latency should be injected
 //! or not. This can be a boolean, float, Bernoulli distribution, a
 //! closure, or a custom implementation of the [`Decider`] trait.
-//! 
+//!
 //! For more information, see the [`decider`](crate::decider) module.
-//! 
+//!
 //! ```rust
 //! use tower_fault_injector::latency::LatencyLayer;
 //! # struct MyRequest { value: u64 };
-//! 
+//!
 //! // Never inject latency.
 //! LatencyLayer::new(false, 200..500);
 //! // Always inject 200-500 ms of latency.
 //! LatencyLayer::new(true, 200..500);
-//! 
+//!
 //! // Inject latency 30% of the time.
 //! LatencyLayer::new(0.3, 200..500);
-//! 
+//!
 //! // Inject latency based on the request content.
 //! LatencyLayer::new(|req: &MyRequest| req.value % 2 == 0, 200..500);
 //! ```
@@ -50,26 +50,26 @@
 //! latency injected in the service. The distribution can be a `Range`,
 //! `RangeInclusive`, static value, a closure, or a custom implementation
 //! of the [`Distribution`] trait.
-//! 
+//!
 //! ```rust
 //! use tower_fault_injector::latency::LatencyLayer;
 //! # struct MyRequest { value: u64 };
-//! 
+//!
 //! // Latency between 200 and 500 milliseconds.
 //! LatencyLayer::new(0.3, 200..500);
 //! LatencyLayer::new(0.3, 200..=500);
-//! 
+//!
 //! // Latency between 200 and 500 milliseconds, using floats for
 //! // extra precision.
 //! LatencyLayer::new(0.3, 200.0..500.0);
 //!
 //! // Fixed latency of 300 milliseconds.
 //! LatencyLayer::new(0.3, 300);
-//! 
+//!
 //! // Closure that returns a latency based on the request content.
 //! LatencyLayer::new(0.3, |req: &MyRequest| req.value);
 //! ```
-//! 
+//!
 
 use crate::decider::Decider;
 use std::{
@@ -85,7 +85,7 @@ mod distribution;
 pub use distribution::Distribution;
 
 /// Layer that randomly adds latency to the service.
-/// 
+///
 /// __Note__: This does not add latency to the underlying service, but rather ensure
 /// that the service will have a minimal latency (set by the distribution) before
 /// returning a response.
@@ -201,5 +201,5 @@ type LatencyFuture<'a, R, S> = Pin<
         dyn Future<Output = Result<<S as Service<R>>::Response, <S as Service<R>>::Error>>
             + Send
             + 'a,
-    >
+    >,
 >;

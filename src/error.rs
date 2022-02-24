@@ -21,44 +21,44 @@
 //!     .layer(error_layer)
 //!     .service(service_fn(my_service));
 //! ```
-//! 
+//!
 //! ### Decider
-//! 
+//!
 //! The __decider__ is used to determine if a latency should be injected
 //! or not. This can be a boolean, float, Bernoulli distribution, a
 //! closure, or a custom implementation of the [`Decider`] trait.
-//! 
+//!
 //! For more information, see the [`decider`](crate::decider) module.
-//! 
+//!
 //! ```rust
 //! use tower_fault_injector::error::ErrorLayer;
 //! # struct MyRequest { value: u64 };
-//! 
+//!
 //! // Never inject an error.
 //! ErrorLayer::new(false, |_: &MyRequest| String::from("error"));
 //! // Always inject an error.
 //! ErrorLayer::new(true, |_: &MyRequest| String::from("error"));
-//! 
+//!
 //! // Inject an error 30% of the time.
 //! ErrorLayer::new(0.3, |_: &MyRequest| String::from("error"));
-//! 
+//!
 //! // Inject an error based on the request content.
 //! ErrorLayer::new(|req: &MyRequest| req.value % 2 == 0, |_: &MyRequest| String::from("error"));
 //! ```
-//! 
+//!
 //! ### Generator
-//! 
+//!
 //! The __generator__ is a function that returns an error based on the
 //! request.
-//! 
+//!
 //! ```rust
 //! use tower_fault_injector::error::ErrorLayer;
 //! # struct MyRequest { value: u64 };
-//! 
+//!
 //! // Customize the error based on the request payload
 //! ErrorLayer::new(false, |req: &MyRequest| format!("value: {}", req.value));
 //! ```
-//! 
+//!
 
 use crate::decider::Decider;
 use std::{

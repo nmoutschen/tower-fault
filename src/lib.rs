@@ -15,18 +15,33 @@
 //! ## Example
 //!
 //! ```rust
-//! use tower_fault_injector::latency::LatencyLayer;
+//! use tower_fault_injector::{
+//! error::ErrorLayer,
+//! latency::LatencyLayer,
+//! };
 //! use tower::{service_fn, ServiceBuilder};
-//! # async fn my_service() -> Result<(), ()> {
+//!
+//! # struct MyRequest {
+//! #     value: u64,
+//! # }
+//!
+//! # async fn my_service(req: MyRequest) -> Result<(), String> {
 //! #     Ok(())
 //! # }
 //!
-//! // Initialize a LatencyLayer with a 10% probability of injecting
-//! // 200 to 500 milliseconds of latency.
+//! // LatencyLayer with a 10% probability of injecting 200 to 500 milliseconds
+//! // of latency.
 //! let latency_layer = LatencyLayer::new(0.1, 200..500);
+//!
+//! // ErrorLayer that injects an error if the request value is greater than 10.
+//! let error_layer = ErrorLayer::new(
+//!     |req: &MyRequest| req.value > 10,
+//!     |_: &MyRequest| String::from("error")
+//! );
 //!
 //! let service = ServiceBuilder::new()
 //!     .layer(latency_layer)
+//!     .layer(error_layer)
 //!     .service(service_fn(my_service));
 //! ```
 
