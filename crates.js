@@ -1,1 +1,1 @@
-window.ALL_CRATES = ["tower_fault_injector"];
+window.ALL_CRATES = ["tower_fault"];
