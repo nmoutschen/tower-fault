@@ -1,0 +1,47 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Error injection for `tower`"><meta name="keywords" content="rust, rustlang, rust-lang, error"><title>tower_fault_injector::error - Rust</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script id="default-settings" ></script><script src="../../storage.js"></script><script src="../../crates.js"></script><script defer src="../../main.js"></script>
+    <noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../../tower_fault_injector/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a><h2 class="location">Module error</h2><div class="sidebar-elems"><div class="block items"><ul><li><a href="#structs">Structs</a></li></ul></div><div id="sidebar-vars" data-name="error" data-ty="mod" data-relpath="./"></div><script defer src="./sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu" title="themes"><img width="18" height="18" alt="Pick another theme!" src="../../brush.svg"></button><div id="theme-choices" role="menu"></div></div><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" id="help-button" title="help">?</button><a id="settings-menu" href="../../settings.html" title="settings"><img width="18" height="18" alt="Change settings" src="../../wheel.svg"></a></div></form></nav><section id="main" class="content"><h1 class="fqn"><span class="in-band">Module <a href="../index.html">tower_fault_injector</a>::<wbr><a class="mod" href="#">error</a><button id="copy-path" onclick="copy_path(this)" title="Copy item path to clipboard"><img src="../../clipboard.svg" width="19" height="18" alt="Copy item path"></button></span><span class="out-of-band"><span id="render-detail"><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span><a class="srclink" href="../../src/tower_fault_injector/error.rs.html#1-212" title="goto source code">[src]</a></span></h1><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="error-injection-for-tower" class="section-header"><a href="#error-injection-for-tower">Error injection for <code>tower</code></a></h2>
+<p>Layer that injects errors randomly into a service. When an error is injected,
+the underlying service is not called.</p>
+<h3 id="usage" class="section-header"><a href="#usage">Usage</a></h3>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use</span> <span class="ident">tower_fault_injector::error::ErrorLayer</span>;
+<span class="kw">use</span> <span class="ident">tower</span>::{<span class="ident">service_fn</span>, <span class="ident">ServiceBuilder</span>};
+
+<span class="comment">// Initialize an ErrorLayer with a 10% probability of returning</span>
+<span class="comment">// an error.</span>
+<span class="kw">let</span> <span class="ident">error_layer</span> <span class="op">=</span> <span class="ident">ErrorLayer::new</span>(<span class="number">0.1</span>, <span class="op">|</span><span class="kw">_</span>: <span class="kw-2">&amp;</span><span class="ident">MyRequest</span><span class="op">|</span> <span class="ident">String::from</span>(<span class="string">&quot;error&quot;</span>));
+
+<span class="kw">let</span> <span class="ident">service</span> <span class="op">=</span> <span class="ident">ServiceBuilder::new</span>()
+    .<span class="ident">layer</span>(<span class="ident">error_layer</span>)
+    .<span class="ident">service</span>(<span class="ident">service_fn</span>(<span class="ident">my_service</span>));</code></pre></div>
+<h4 id="decider" class="section-header"><a href="#decider">Decider</a></h4>
+<p>The <strong>decider</strong> is used to determine if a latency should be injected
+or not. This can be a boolean, float, Bernoulli distribution, a
+closure, or a custom implementation of the <a href="../decider/trait.Decider.html" title="Decider"><code>Decider</code></a> trait.</p>
+<p>For more information, see the <a href="../decider/index.html"><code>decider</code></a> module.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use</span> <span class="ident">tower_fault_injector::error::ErrorLayer</span>;
+
+<span class="comment">// Never inject an error.</span>
+<span class="ident">ErrorLayer::new</span>(<span class="bool-val">false</span>, <span class="op">|</span><span class="kw">_</span>: <span class="kw-2">&amp;</span><span class="ident">MyRequest</span><span class="op">|</span> <span class="ident">String::from</span>(<span class="string">&quot;error&quot;</span>));
+<span class="comment">// Always inject an error.</span>
+<span class="ident">ErrorLayer::new</span>(<span class="bool-val">true</span>, <span class="op">|</span><span class="kw">_</span>: <span class="kw-2">&amp;</span><span class="ident">MyRequest</span><span class="op">|</span> <span class="ident">String::from</span>(<span class="string">&quot;error&quot;</span>));
+
+<span class="comment">// Inject an error 30% of the time.</span>
+<span class="ident">ErrorLayer::new</span>(<span class="number">0.3</span>, <span class="op">|</span><span class="kw">_</span>: <span class="kw-2">&amp;</span><span class="ident">MyRequest</span><span class="op">|</span> <span class="ident">String::from</span>(<span class="string">&quot;error&quot;</span>));
+
+<span class="comment">// Inject an error based on the request content.</span>
+<span class="ident">ErrorLayer::new</span>(<span class="op">|</span><span class="ident">req</span>: <span class="kw-2">&amp;</span><span class="ident">MyRequest</span><span class="op">|</span> <span class="ident">req</span>.<span class="ident">value</span> <span class="op">%</span> <span class="number">2</span> <span class="op">==</span> <span class="number">0</span>, <span class="op">|</span><span class="kw">_</span>: <span class="kw-2">&amp;</span><span class="ident">MyRequest</span><span class="op">|</span> <span class="ident">String::from</span>(<span class="string">&quot;error&quot;</span>));</code></pre></div>
+<h4 id="generator" class="section-header"><a href="#generator">Generator</a></h4>
+<p>The <strong>generator</strong> is a function that returns an error based on the
+request.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use</span> <span class="ident">tower_fault_injector::error::ErrorLayer</span>;
+
+<span class="comment">// Customize the error based on the request payload</span>
+<span class="ident">ErrorLayer::new</span>(<span class="bool-val">false</span>, <span class="op">|</span><span class="ident">req</span>: <span class="kw-2">&amp;</span><span class="ident">MyRequest</span><span class="op">|</span> <span class="macro">format!</span>(<span class="string">&quot;value: {}&quot;</span>, <span class="ident">req</span>.<span class="ident">value</span>));</code></pre></div>
+</div></details><h2 id="structs" class="small-section-header"><a href="#structs">Structs</a></h2>
+<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.ErrorLayer.html" title="tower_fault_injector::error::ErrorLayer struct">ErrorLayer</a></div><div class="item-right docblock-short"><p>Layer that randomly trigger errors for the service.</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.ErrorService.html" title="tower_fault_injector::error::ErrorService struct">ErrorService</a></div><div class="item-right docblock-short"><p>Service that randomly trigger errors instead of calling the underlying
+service.</p>
+</div></div></div></section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="tower_fault_injector" data-search-index-js="../../search-index.js" data-search-js="../../search.js"></div>
+</body></html>

@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["LatencyLayer","Layer that randomly adds latency to the service."],["LatencyService","Service that randomly injects latency into a service."]],"trait":[["Distribution","Trait that returns a random latency."]]});

@@ -1,0 +1,1 @@
+window.ALL_CRATES = ["tower_fault_injector"];

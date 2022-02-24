@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ErrorLayer","Layer that randomly trigger errors for the service."],["ErrorService","Service that randomly trigger errors instead of calling the underlying service."]]});

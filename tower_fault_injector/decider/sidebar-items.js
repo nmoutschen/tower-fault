@@ -1,0 +1,1 @@
+initSidebarItems({"trait":[["Decider","Trait for deciding if a fault should be injected for a given request or response."]]});
