@@ -12,7 +12,7 @@ async fn main() {
         .route("/", get(handler))
         // Add a LatencyLayer with a 50% probability of injecting
         // 200 to 500 milliseconds of latency.
-        .layer(LatencyLayer::new_with_bernoulli(0.5, 200..500).unwrap());
+        .layer(LatencyLayer::new(0.5, 200..500));
 
     // Start the axum server.
     Server::bind(&"0.0.0.0:3000".parse().unwrap())

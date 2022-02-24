@@ -1,29 +1,66 @@
 //! # Error injection for `tower`
 //!
-//! Layer that injects errors randomly into a service.
+//! Layer that injects errors randomly into a service. When an error is injected,
+//! the underlying service is not called.
 //!
 //! ## Usage
 //!
 //! ```rust
 //! use tower_fault_injector::error::ErrorLayer;
 //! use tower::{service_fn, ServiceBuilder};
-//! # async fn my_service() -> Result<(), String> {
+//! # struct MyRequest { value: u64 };
+//! # async fn my_service(_req: MyRequest) -> Result<(), String> {
 //! #     Ok(())
 //! # }
 //!
 //! // Initialize an ErrorLayer with a 10% probability of returning
 //! // an error.
-//! let error_layer = ErrorLayer::new(0.1, || String::from("error")).unwrap();
+//! let error_layer = ErrorLayer::new(0.1, |_: &MyRequest| String::from("error"));
 //!
 //! let service = ServiceBuilder::new()
 //!     .layer(error_layer)
 //!     .service(service_fn(my_service));
 //! ```
+//! 
+//! ### Decider
+//! 
+//! The __decider__ is used to determine if a latency should be injected
+//! or not. This can be a boolean, float, Bernoulli distribution, a
+//! closure, or a custom implementation of the [`Decider`] trait.
+//! 
+//! For more information, see the [`decider`](crate::decider) module.
+//! 
+//! ```rust
+//! use tower_fault_injector::error::ErrorLayer;
+//! # struct MyRequest { value: u64 };
+//! 
+//! // Never inject an error.
+//! ErrorLayer::new(false, |_: &MyRequest| String::from("error"));
+//! // Always inject an error.
+//! ErrorLayer::new(true, |_: &MyRequest| String::from("error"));
+//! 
+//! // Inject an error 30% of the time.
+//! ErrorLayer::new(0.3, |_: &MyRequest| String::from("error"));
+//! 
+//! // Inject an error based on the request content.
+//! ErrorLayer::new(|req: &MyRequest| req.value % 2 == 0, |_: &MyRequest| String::from("error"));
+//! ```
+//! 
+//! ### Generator
+//! 
+//! The __generator__ is a function that returns an error based on the
+//! request.
+//! 
+//! ```rust
+//! use tower_fault_injector::error::ErrorLayer;
+//! # struct MyRequest { value: u64 };
+//! 
+//! // Customize the error based on the request payload
+//! ErrorLayer::new(false, |req: &MyRequest| format!("value: {}", req.value));
+//! ```
+//! 
 
-use rand::{
-    distributions::{Bernoulli, BernoulliError},
-    prelude::*,
-};
+use crate::decider::Decider;
 use std::{
     future::Future,
     marker::PhantomData,
@@ -32,43 +69,72 @@ use std::{
 };
 use tower::{Layer, Service};
 
-/// A layer that randomly trigger errors for the service.
+/// Layer that randomly trigger errors for the service.
 ///
 /// This trigger errors based on the given probability and using
 /// a function to generate errors.
 #[derive(Clone, Debug)]
-pub struct ErrorLayer<'a, F> {
-    distribution: Bernoulli,
-    func: F,
+pub struct ErrorLayer<'a, D, G> {
+    decider: D,
+    generator: G,
     _phantom: PhantomData<&'a ()>,
 }
 
-impl<'a, F> ErrorLayer<'a, F> {
-    /// Create a new `ErrorLayer` with the given probability and error function.
-    ///
-    /// The probability is the chance that a request will result in an error,
-    /// bound between 0 and 1. A probability of 0.5 means that 50% of the calls
-    /// to the service will result in an error.
-    pub fn new(probability: f64, func: F) -> Result<Self, Error> {
-        Ok(ErrorLayer {
-            distribution: Bernoulli::new(probability)?,
-            func,
+impl<'a> ErrorLayer<'a, (), ()> {
+    /// Create a new `ErrorLayer` builder.
+    pub fn builder() -> Self {
+        Self {
+            decider: (),
+            generator: (),
             _phantom: PhantomData,
-        })
+        }
     }
 }
 
-impl<'a, F, S> Layer<S> for ErrorLayer<'a, F>
+impl<'a, D, G> ErrorLayer<'a, D, G> {
+    /// Create a new `ErrorLayer` builder with the given probability
+    /// and error generator.
+    pub fn new(decider: D, generator: G) -> Self {
+        Self {
+            decider,
+            generator,
+            _phantom: PhantomData,
+        }
+    }
+
+    /// Set the given decider to be used to determine if an error
+    /// should be injected.
+    pub fn with_decider<ND>(self, decider: ND) -> ErrorLayer<'a, ND, G> {
+        ErrorLayer {
+            decider,
+            generator: self.generator,
+            _phantom: PhantomData,
+        }
+    }
+
+    /// Set the given error generator to generate errors.
+    pub fn with_generator<NG>(self, generator: NG) -> ErrorLayer<'a, D, NG> {
+        ErrorLayer {
+            decider: self.decider,
+            generator,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<'a, D, G, S> Layer<S> for ErrorLayer<'a, D, G>
 where
-    F: Clone,
+    D: Clone,
+    G: Clone,
 {
-    type Service = ErrorService<'a, F, S>;
+    type Service = ErrorService<'a, D, G, S>;
 
     fn layer(&self, inner: S) -> Self::Service {
         ErrorService {
             inner,
-            layer: self.clone(),
-            rng: StdRng::from_entropy(),
+            decider: self.decider.clone(),
+            generator: self.generator.clone(),
+            _phantom: PhantomData,
         }
     }
 }
@@ -76,20 +142,20 @@ where
 /// Service that randomly trigger errors instead of calling the underlying
 /// service.
 #[derive(Clone, Debug)]
-pub struct ErrorService<'a, F, S> {
+pub struct ErrorService<'a, D, G, S> {
     inner: S,
-    layer: ErrorLayer<'a, F>,
-    rng: StdRng,
+    decider: D,
+    generator: G,
+    _phantom: PhantomData<&'a ()>,
 }
 
-impl<'a, F, S, R> Service<R> for ErrorService<'a, F, S>
+impl<'a, D, G, S, R> Service<R> for ErrorService<'a, D, G, S>
 where
-    R: Send,
+    D: Decider<R> + Clone,
+    G: Fn(&R) -> S::Error + Clone,
     S: Service<R> + Send,
     S::Future: Send + 'a,
     S::Error: Send + 'a,
-    S::Response: Send,
-    F: Fn() -> S::Error,
 {
     type Response = S::Response;
     type Error = S::Error;
@@ -100,8 +166,8 @@ where
     }
 
     fn call(&mut self, request: R) -> Self::Future {
-        if self.layer.distribution.sample(&mut self.rng) {
-            let error = (self.layer.func)();
+        if self.decider.decide(&request) {
+            let error = (self.generator)(&request);
             return Box::pin(async move { Err(error) });
         }
 
@@ -117,57 +183,30 @@ type ErrorFuture<'a, R, S> = Pin<
     >,
 >;
 
-/// Errors that can be returned by the `ErrorLayer`.
-#[derive(Debug)]
-pub enum Error {
-    /// Error creating an `ErrorLayer`
-    NewLayerError(&'static str),
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::NewLayerError(s) => write!(f, "cannot create the layer: {}", s),
-        }
-    }
-}
-
-impl From<BernoulliError> for Error {
-    fn from(_err: BernoulliError) -> Self {
-        Error::NewLayerError("invalid probability")
-    }
-}
-
-impl std::error::Error for Error {}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::test_utils::*;
 
     #[tokio::test]
-    async fn error_success() -> Result<(), Error> {
-        let layer = ErrorLayer::new(0.0, || String::from("error"))?;
+    async fn error_success() {
+        let layer = ErrorLayer::new(0.0, |_: &()| String::from("error"));
         let mut service = layer.layer(DummyService);
 
         for _ in 0..1000 {
             let res = service.call(()).await;
             assert_eq!(res.unwrap(), String::from("ok"));
         }
-
-        Ok(())
     }
 
     #[tokio::test]
-    async fn error_fail() -> Result<(), Error> {
-        let layer = ErrorLayer::new(1.0, || String::from("error"))?;
+    async fn error_fail() {
+        let layer = ErrorLayer::new(1.0, |_: &()| String::from("error"));
         let mut service = layer.layer(DummyService);
 
         for _ in 0..1000 {
             let res = service.call(()).await;
             assert_eq!(res.unwrap_err(), String::from("error"));
         }
-
-        Ok(())
     }
 }
