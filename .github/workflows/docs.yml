@@ -18,6 +18,9 @@ jobs:
         with:
           command: doc
           args: --all-features --no-deps
+      - name: Add index.html
+        run: |
+          echo "<meta http-equiv=refresh content=0;url=tower-fault/index.html>" > target/doc/index.html
       - uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
